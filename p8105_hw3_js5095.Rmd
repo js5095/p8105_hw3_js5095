@@ -1,0 +1,13 @@
+---
+title: "p8105_hw3_js5095"
+author: Jianting Shi
+date:  2020-10-10
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(p8105.datasets)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
