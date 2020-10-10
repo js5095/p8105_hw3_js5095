@@ -11,3 +11,117 @@ library(p8105.datasets)
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Problem 1
+
+```{r}
+data("instacart")
+```
+
+This dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns.\
+The `r ncol(instacart)` variables include `r names(instacart)`.\
+Observations are the level of items in orders by user. There are user / order variables -- user ID, order ID, order day, and order hour. There are also item variables -- name, aisle, department, and some numeric codes. 
+
+## 1.1 How many aisles, and which are most items from?
+
+```{r}
+aisle_df = 
+  instacart %>% 
+  count(aisle) %>% 
+  arrange(desc(n))
+```
+
+There are `r nrow(aisle_df)` aisles and the most items are from `r aisle_df[1,1]`.
+
+## 1.2 Make a plot that shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered.
+
+```{r}
+aisle_df %>% 
+  filter(n > 10000) %>% 
+  mutate(
+    aisle = factor(aisle),
+    aisle = fct_reorder(aisle, n)
+  ) %>% 
+  ggplot(aes(x = aisle, y = n)) +
+  geom_point() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+## 1.3 Make a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”. Include the number of times each item is ordered in your table.
+
+```{r}
+aisle_df_2 = 
+  instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>%
+  group_by(aisle) %>% 
+  count(product_name) %>% 
+  mutate(rank = min_rank(desc(n))) %>% 
+  filter(rank < 4) %>% 
+  arrange(aisle, rank) %>% 
+  knitr::kable()
+```
+
+## 1.4 Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
+
+```{r}
+aisle_df_3 =
+  instacart %>% 
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>%
+  group_by(product_name, order_dow) %>% 
+  summarize(mean_hour = mean(order_hour_of_day)) %>%
+  pivot_wider(
+    names_from = order_dow,
+    values_from = mean_hour
+  )
+```
+
+
+# Problem 2
+
+## 2.1 Read the "accel_data" dataset
+
+```{r}
+accel_df = 
+  read_csv("./Data/accel_data.csv") %>%
+  janitor::clean_names() %>% 
+  pivot_longer(starts_with("activity"), names_to = "minute", values_to = "activity_count") %>% 
+  mutate(day_type = 
+           case_when(day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday") ~ "weekday",
+                     day %in% c("Saturday", "Sunday") ~ "weekend"),
+         week = as.character(week),
+         recode(minute, activity_1:activity_1440)) %>%
+  select(week, day, day_id, day_form, everything())
+```
+
+*** The resulting dataset has variables including `r names(accel_df)`, which describe the weekday
+It contains `r nrow(accel_df)` rows and `r ncol(accel_df)` columns. \
+
+## 2.2 Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals.
+
+```{r}
+accel_sum_df = 
+  accel_df %>% 
+  group_by(week, day) %>% 
+  mutate(total_activity = sum(activity_count)) %>%
+  select(week, day, day_id, total_activity) %>% 
+  distinct() 
+
+knitr::kable(accel_sum_df)
+
+ggplot(accel_sum_df, aes(x = day, y = total_activity)) + 
+  geom_violin(aes(fill = week), alpha = .5) + 
+  stat_summary(fun = "median", color = "black")
+```
+
+
+*** It seems his activity of day are more stable on Tuesday to Thursday, but more fluctuate from Friday to Monday.
+
+## 2.3 Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week.
+
+```{r}
+accel_df %>% 
+  ggplot(aes(x = minute, y = total_activity), color = day) +
+  
+```
+
+# Problem 3
+
