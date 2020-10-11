@@ -56,8 +56,10 @@ aisle_df_2 =
   count(product_name) %>% 
   mutate(rank = min_rank(desc(n))) %>% 
   filter(rank < 4) %>% 
-  arrange(aisle, rank) %>% 
-  knitr::kable()
+  arrange(aisle, rank)
+  
+knitr::kable(aisle_df_2)
+
 ```
 
 ## 1.4 Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
@@ -72,6 +74,8 @@ aisle_df_3 =
     names_from = order_dow,
     values_from = mean_hour
   )
+
+knitr::kable(aisle_df_3)
 ```
 
 
@@ -112,6 +116,8 @@ accel_sum_df =
                                       "Sunday"))) %>% 
   select(week, day, day_id, total_activity) %>% 
   distinct() 
+
+knitr::kable(accel_sum_df)
 
 ggplot(accel_sum_df, aes(x = day, y = total_activity)) + 
   geom_boxplot() +
@@ -213,6 +219,7 @@ tmax_vs_tmin =
   mutate(tmin = as.numeric(tmax, na.rm = TRUE)) %>% 
   ggplot(aes(x = tmax, y = tmin)) + 
   geom_hex(bin = 25) +
+  ggtitle("tmax_vs_tmin") +
   theme(legend.position = "bottom")
 
 snowfall_lim = 
