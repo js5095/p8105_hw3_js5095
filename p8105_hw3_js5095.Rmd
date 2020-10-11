@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(p8105.datasets)
+library(cowplot)
 ```
 
 # Problem 1
@@ -108,7 +109,7 @@ accel_sum_df =
                                       "Thursday", 
                                       "Friday", 
                                       "Saturday", 
-                                      "Sunday")))
+                                      "Sunday"))) %>% 
   select(week, day, day_id, total_activity) %>% 
   distinct() 
 
