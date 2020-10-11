@@ -8,7 +8,6 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(p8105.datasets)
-knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Problem 1
@@ -77,7 +76,7 @@ aisle_df_3 =
 
 # Problem 2
 
-## 2.1 Read the "accel_data" dataset
+## 2.1 Read the accelerometer dataset
 
 ```{r}
 accel_df = 
@@ -87,13 +86,14 @@ accel_df =
   mutate(day_type = 
            case_when(day %in% c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday") ~ "weekday",
                      day %in% c("Saturday", "Sunday") ~ "weekend"),
-         week = as.character(week),
-         recode(minute, activity_1:activity_1440)) %>%
-  select(week, day, day_id, day_form, everything())
+) %>% 
+  separate(col = minute, sep = "_", into = c("to_drop", "minute")) %>% 
+  select(-to_drop) %>% 
+  mutate(minute = as.numeric(minute))
 ```
 
-*** The resulting dataset has variables including `r names(accel_df)`, which describe the weekday
-It contains `r nrow(accel_df)` rows and `r ncol(accel_df)` columns. \
+The resulting dataset has `r ncol(accel_df)` variables including `r names(accel_df)`, containing `r nrow(accel_df)` observations recorded by each minute of each day for a total of 5 weeks.\
+The dataframe contains `r nrow(accel_df)` rows and `r ncol(accel_df)` columns. \
 
 ## 2.2 Using your tidied dataset, aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals.
 
@@ -102,26 +102,129 @@ accel_sum_df =
   accel_df %>% 
   group_by(week, day) %>% 
   mutate(total_activity = sum(activity_count)) %>%
+  mutate(day = factor(day, levels = c("Monday", 
+                                      "Tuesday", 
+                                      "Wednesday", 
+                                      "Thursday", 
+                                      "Friday", 
+                                      "Saturday", 
+                                      "Sunday")))
   select(week, day, day_id, total_activity) %>% 
   distinct() 
 
-knitr::kable(accel_sum_df)
-
 ggplot(accel_sum_df, aes(x = day, y = total_activity)) + 
-  geom_violin(aes(fill = week), alpha = .5) + 
-  stat_summary(fun = "median", color = "black")
+  geom_boxplot() +
+  labs(
+    title = "Total Activity per Day",
+    x = "Day",
+    y = "Total Activity per Day"
+  )
 ```
 
+There is a minor trend of increasing daily activity from Monday to Friday. This subject is less likely to be as active in Saturday compared with other days, although their activity picked up on Sundays. 
 
-*** It seems his activity of day are more stable on Tuesday to Thursday, but more fluctuate from Friday to Monday.
+Across all 5 weeks, his activity of day are more stable from Tuesday to Thursday, but more fluctuated from Friday to Monday.
 
 ## 2.3 Make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week.
 
 ```{r}
 accel_df %>% 
-  ggplot(aes(x = minute, y = total_activity), color = day) +
-  
+  ggplot(aes(x = minute, y = activity_count, color = day)) + 
+  geom_line() +
+  labs(
+    title = "Daily Accelerometer Data",
+    x = "Minute",
+    y = "Activity_count"
+  ) +
+  theme(legend.position = "bottom")
 ```
 
+There is little activity registered from 0 min to ~250 min, which correspond to 12 AM to ~ 4AM in the morning. Afterwards this subject has activities throughout the day, with multiple spikes. The peak of the activity typically appears in the late evening.
+
 # Problem 3
+
+## 3.0 Read the NY NOAA dataset
+
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
+```
+
+This NY-NOAA dataset contains `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` columns.\
+The `r ncol(ny_noaa)` variables include `r names(ny_noaa)`.\
+Observations are daily levels of precipitation, snowfall and snow depth, which are numeric inputs. Maximum temperature and minimum temperature are also recorded here, which are character inputs. These obervations are ordered by both date and weather station ID. \
+This data contains too many missing data to be processed until data cleaning.
+
+## 3.1 Data cleaning
+
+```{r}
+ny_noaa_df =
+  ny_noaa %>% 
+  janitor::clean_names() %>% 
+  separate(date, into = c("year", "month", "day"), sep = "-") %>% 
+  mutate(
+    tmax = as.numeric(tmax),
+    tmin = as.numeric(tmin)
+  )
+    
+knitr::kable(
+  ny_noaa_df %>% 
+  count(snow) %>% 
+  arrange(desc(n)))
+```
+
+For snowfall, the most commonly observed values are 0, since there is no snowfall for most time of the year.
+
+## 3.2 Make a two-panel plot showing the average max temperature in January and in July in each station across years. 
+
+```{r}
+ny_noaa_df_mean_tmax = 
+  ny_noaa_df %>% 
+  filter(month == "01" | month == "07") %>% 
+  group_by(month, id, year) %>% 
+  na.omit() %>% 
+  summarise(mean_tmax = mean(tmax * 0.1)) %>% 
+  distinct()
+
+ny_noaa_df_mean_tmax %>% 
+ggplot(aes(y = mean_tmax)) +
+  geom_boxplot() +
+  facet_grid(.~month) +
+  ggtitle("The average max temperature in January and in July in each station across years") +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+Observed from the boxplot, the average max temperature in January, which is around 0 degree celcius, is much lower than in July, which is around 27 degree celcius. \
+That's because in January it's winter in NY and in July it's summer. \
+There are outliers in both January and July.
+
+## 3.3 Make a two-panel plot
+
+```{r}
+tmax_vs_tmin = 
+  ny_noaa_df %>% 
+  group_by(year, month) %>% 
+  na.omit(tmax) %>% 
+  na.omit(tmin) %>% 
+  mutate(tmax = as.numeric(tmax, na.rm = TRUE)) %>% 
+  mutate(tmin = as.numeric(tmax, na.rm = TRUE)) %>% 
+  ggplot(aes(x = tmax, y = tmin)) + 
+  geom_hex(bins = 15) +
+  theme(legend.position = "none")
+
+tmax_vs_tmin
+
+snowfall_lim = 
+  ny_noaa_df %>% 
+  filter(snow > 0, snow < 100) %>% 
+  ggplot(aes(x = snow, fill = year)) +
+  geom_density(alpha = 0.5) +
+  theme(legend.position = "none")
+
+snowfall_lim
+
+tmax_vs_tmin + snowfall_lim
+```
 
