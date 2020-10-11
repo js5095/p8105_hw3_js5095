@@ -211,20 +211,19 @@ tmax_vs_tmin =
   mutate(tmax = as.numeric(tmax, na.rm = TRUE)) %>% 
   mutate(tmin = as.numeric(tmax, na.rm = TRUE)) %>% 
   ggplot(aes(x = tmax, y = tmin)) + 
-  geom_hex(bins = 15) +
-  theme(legend.position = "none")
-
-tmax_vs_tmin
+  geom_hex(bin = 25) +
+  theme(legend.position = "bottom")
 
 snowfall_lim = 
   ny_noaa_df %>% 
   filter(snow > 0, snow < 100) %>% 
   ggplot(aes(x = snow, fill = year)) +
   geom_density(alpha = 0.5) +
-  theme(legend.position = "none")
+  ggtitle("The distribution of snowfall") +
+  theme(legend.position = "bottom")
 
-snowfall_lim
-
-tmax_vs_tmin + snowfall_lim
+plot_grid(tmax_vs_tmin,snowfall_lim, ncol = 2)
 ```
 
+There is a linear relationship between the max temperature and the min temperature. \
+There are a few typical amount of snowfall throughout the 30 years, namely 25, 50 and 75 mm. Moreover, fewer snowfalls are observed in the more recent years (after 2005) vs earlier.
